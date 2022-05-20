@@ -1,32 +1,35 @@
 import cv2.cv2 as cv2
 import numpy as np
 
-def processing(img, command):
-    c = 100
-    th = 255//2
-    gamma = 1
-    def reverse(img):
-        return np.max(img) - img
-    
-    def logarit(img, c):
-        return float(c) * np.log10(1.0 + img)
+class Processor:
+    def __init__(self):
+        self.c = 100
+        self.th = 255//2
+        self.gamma = 1
 
-    def threshold(image, th):
-        return (image > th) * 255
-
-    def Gamma(image, gamma, c):
-        def nomalize(image):
-            return image / (np.amax(image))
+    def processing(self, img, command):
+        def reverse(img):
+            return np.max(img) - img
         
-        return (float(c) * np.exp(np.log(nomalize(image)) * float(gamma))).astype(np.uint8)
+        def logarit(img, c):
+            return float(c) * np.log10(1.0 + img)
 
-    imgRGB = cv2.cvtColor(np.float32(img), cv2.COLOR_BGR2RGB)
+        def threshold(image, th):
+            return (image > th) * 255
 
-    if command == 'reverse':
-        return reverse(imgRGB)
-    if command == 'logarit':
-        return logarit(imgRGB, c)
-    if command == 'threshold':
-        return threshold(imgRGB, th)
-    if command == 'gamma':
-        return Gamma(imgRGB, gamma, c)
+        def Gamma(image, gamma, c):
+            def nomalize(image):
+                return image / (np.amax(image))
+            
+            return (float(c) * np.exp(np.log(nomalize(image)) * float(gamma))).astype(np.uint8)
+
+        imgRGB = cv2.cvtColor(np.float32(img), cv2.COLOR_BGR2RGB)
+
+        if command == 'reverse':
+            return reverse(imgRGB)
+        if command == 'logarit':
+            return logarit(imgRGB, self.c)
+        if command == 'threshold':
+            return threshold(imgRGB, self.th)
+        if command == 'gamma':
+            return Gamma(imgRGB, self.gamma, self.c)

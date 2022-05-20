@@ -1,6 +1,6 @@
 import pygame
 import pygame_gui
-from processor import processing
+from processor import Processor
 import cv2.cv2 as cv2
 import numpy as np
 
@@ -8,6 +8,8 @@ from scaler import Scaler
 from pygame_gui.elements import UIButton, UIImage
 from pygame_gui.windows import UIFileDialog
 from pygame_gui.core.utility import create_resource_path
+from pygame_gui.elements import UIHorizontalSlider
+from pygame_gui.elements import UILabel
 
 
 class MainApp:
@@ -16,9 +18,11 @@ class MainApp:
         self.scaler_main = None
         self.scaler_sub = None
         self.open_cv_img = None
+        self.processor = Processor()
         # elements size and bounds
         self.button_size_m = (100, 35)
         self.button_size_l = (150, 30)
+        self.button_square = (35, 35)
         # Main layout and theme
         pygame.display.set_caption('Quick Start')
         self.window_surface = pygame.display.set_mode((800, 600))
@@ -31,13 +35,51 @@ class MainApp:
             ##windows
         self.original_image_windows = None
 
-        self.load_button = UIButton(relative_rect=pygame.Rect(( -160, -40), self.button_size_l),
-                                    text='Load Image',
+            ##Sliders
+
+        self.slider_threshold = UIHorizontalSlider(pygame.Rect((10, 590 - 25),
+                                                          (240, 25)),
+                                              255//2,
+                                              (0.0, 255.0),
+                                              self.ui_manager,
+                                              click_increment=5)
+        self.slider_threshold.disable()
+        self.label_threshold = UILabel(pygame.Rect((10, 540),
+                                                (200, 25)),
+                                    'Threshold: ' + str(int(self.slider_threshold.get_current_value())),
+                                    self.ui_manager)
+
+        self.slider_c = UIHorizontalSlider(pygame.Rect((260, 590 - 25),
+                                                          (240, 25)),
+                                              255//2,
+                                              (0.0, 255.0),
+                                              self.ui_manager,
+                                              click_increment=5)
+        self.slider_c.disable()
+        self.label_c = UILabel(pygame.Rect((260, 540),
+                                                (200, 25)),
+                                    'Threshold: ' + str(int(self.slider_c.get_current_value())),
+                                    self.ui_manager)
+        
+        self.slider_gamma = UIHorizontalSlider(pygame.Rect((510, 590 - 25),
+                                                          (240, 25)),
+                                              1,
+                                              (0.0, 1.0),
+                                              self.ui_manager,
+                                              click_increment=0.1)
+        self.slider_gamma.disable()
+        self.label_gamma = UILabel(pygame.Rect((510, 540),
+                                                (200, 25)),
+                                    'Threshold: ' + str(int(self.slider_gamma.get_current_value())),
+                                    self.ui_manager)
+            ##Buttons
+        self.load_button = UIButton(relative_rect=pygame.Rect(( -45, 10), self.button_square),
+                                    text="Upload",
                                     manager=self.ui_manager,
                                     anchors={'left': 'right',
                                             'right': 'right',
-                                            'top': 'bottom',
-                                            'bottom': 'bottom'})
+                                            'top': 'top',
+                                            'bottom': 'top'})
 
         self.reverse_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 10), self.button_size_m),
                                                         text='Reverse',
@@ -131,12 +173,16 @@ class MainApp:
                                                             container=self.original_image_windows,
                                                             manager=self.ui_manager,
                                                             anchors={
-            'left': 'left',
-            'right': 'left',
-            'top': 'top',
-            'bottom': 'top'
-        })
-
+                                                            'left': 'left',
+                                                            'right': 'left',
+                                                            'top': 'top',
+                                                            'bottom': 'top'
+                                                        })
+                    self.label_threshold.clear_text_surface()
+                    self.label_threshold = UILabel(pygame.Rect((10, 540),
+                                                (200, 25)),
+                                    'Threshold: ' + str(int(self.slider_threshold.get_current_value())),
+                                    self.ui_manager)
                     if event.type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == self.reverse_btn:
                             isReverse = True
@@ -162,13 +208,13 @@ class MainApp:
                     self.ui_manager.process_events(event)
                 
                     if isReverse:
-                        self.open_cv_img = processing(self.open_cv_img, "reverse")
+                        self.open_cv_img = self.processor.processing(self.open_cv_img, "reverse")
                     if isLog:
-                        self.open_cv_img = processing(self.open_cv_img, "logarit")
+                        self.open_cv_img = self.processor.processing(self.open_cv_img, "logarit")
                     if isThreshold:
-                        self.open_cv_img = processing(self.open_cv_img, "threshold")
+                        self.open_cv_img = self.processor.processing(self.open_cv_img, "threshold")
                     if isGamma:
-                        self.open_cv_img = processing(self.open_cv_img, "gamma")
+                        self.open_cv_img = self.processor.processing(self.open_cv_img, "gamma")
 
                 if self.open_cv_img is not None:
                     frame = np.rot90(self.open_cv_img)
