@@ -1,125 +1,187 @@
 import pygame
-from main import threshold
 import pygame_gui
+from processor import processing
 import cv2.cv2 as cv2
 import numpy as np
 
-pygame.init()
-
-pygame.display.set_caption('Quick Start')
-window_surface = pygame.display.set_mode((800, 600))
-
-background = pygame.Surface((800, 600))
-background.fill(pygame.Color('#000000'))
-
-manager = pygame_gui.UIManager((800, 600))
-
-clock = pygame.time.Clock()
+from scaler import Scaler
+from pygame_gui.elements import UIButton, UIImage
+from pygame_gui.windows import UIFileDialog
+from pygame_gui.core.utility import create_resource_path
 
 
-def processing(img, command):
-    c = 100
-    th = 255//2
-    gamma = 1
-    def reverse(img):
-        return np.max(img) - img
-    
-    def logarit(img, c):
-        return float(c) * np.log10(1.0 + img)
+class MainApp:
+    def __init__(self):
+        pygame.init()
+        self.scaler_main = None
+        self.scaler_sub = None
+        self.open_cv_img = None
+        # elements size and bounds
+        self.button_size_m = (100, 35)
+        self.button_size_l = (150, 30)
+        # Main layout and theme
+        pygame.display.set_caption('Quick Start')
+        self.window_surface = pygame.display.set_mode((800, 600))
+        self.ui_manager = pygame_gui.UIManager((800, 600), 'data/themes/main.json')
 
-    def threshold(image, th):
-        return (image > th) * 255
+        self.background = pygame.Surface((800, 600))
+        self.background.fill(self.ui_manager.ui_theme.get_colour('dark_bg'))
 
-    def Gamma(image, gamma, c):
-        def nomalize(image):
-            return image / (np.amax(image))
-        
-        return (float(c) * np.exp(np.log(nomalize(image)) * float(gamma))).astype(np.uint8)
+        # UI Elements
+            ##windows
+        self.original_image_windows = None
 
-    imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        self.load_button = UIButton(relative_rect=pygame.Rect(( -160, -40), self.button_size_l),
+                                    text='Load Image',
+                                    manager=self.ui_manager,
+                                    anchors={'left': 'right',
+                                            'right': 'right',
+                                            'top': 'bottom',
+                                            'bottom': 'bottom'})
 
-    if command == 'reverse':
-        return reverse(imgRGB)
-    if command == 'logarit':
-        return logarit(imgRGB, c)
-    if command == 'threshold':
-        return threshold(imgRGB, th)
-    if command == 'gamma':
-        return Gamma(imgRGB, gamma, c)
+        self.reverse_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 10), self.button_size_m),
+                                                        text='Reverse',
+                                                        manager=self.ui_manager,
+                                                        anchors={
+            'left': 'left',
+            'right': 'left',
+            'top': 'top',
+            'bottom': 'top'
+        })
 
+        self.logarit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, self.button_size_m[1] + 10*2), self.button_size_m),
+                                                        text='Logarit',
+                                                        manager=self.ui_manager,
+                                                        anchors={
+            'left': 'left',
+            'right': 'left',
+            'top': 'top',
+            'bottom': 'top'
+        })
 
-def run():
+        self.threshold_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 2*self.button_size_m[1] + 10*3), self.button_size_m),
+                                                        text='Threshold',
+                                                        manager=self.ui_manager,
+                                                        anchors={
+            'left': 'left',
+            'right': 'left',
+            'top': 'top',
+            'bottom': 'top'
+        })
 
-    button_size = (100, 35)
+        self.gamma_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 3*self.button_size_m[1] + 10*4), self.button_size_m),
+                                                    text='Gamma',
+                                                    manager=self.ui_manager,
+                                                    anchors={
+            'left': 'left',
+            'right': 'left',
+            'top': 'top',
+            'bottom': 'top'
+        })
 
-    reverse_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 10), button_size),
-                                            text='Reverse',
-                                            manager=manager)
+        self.file_dialog = None
 
-    logarit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, button_size[1] + 10*2), button_size),
-                                            text='Logarit',
-                                            manager=manager)
-    
-    threshold_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 2*button_size[1] + 10*3), button_size),
-                                            text='Threshold',
-                                            manager=manager)
-    
-    gamma_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((10, 3*button_size[1] + 10*4), button_size),
-                                            text='Gamma',
-                                            manager=manager)
+        self.max_image_display_dimensions = (500, 500)
+        self.display_loaded_image = None
 
-    is_running = True
-    isReverse = False
-    isLog = False
-    isThreshold = False
-    isGamma = False
+        self.clock = pygame.time.Clock()
+        self.is_running = True
 
-    while is_running:
+    def run(self):
 
-        time_delta = clock.tick(60)/1000.0
+            isReverse = False
+            isLog = False
+            isThreshold = False
+            isGamma = False
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                is_running = False
-            
-            if event.type == pygame_gui.UI_BUTTON_PRESSED:
-                if event.ui_element == reverse_btn:
-                    isReverse = True
-                if event.ui_element == logarit_btn:
-                    isLog = True
-                if event.ui_element == gamma_btn:
-                    isGamma = True
-                if event.ui_element == threshold_btn:
-                    isThreshold = True
+            while self.is_running:
 
-            manager.process_events(event)
+                time_delta = self.clock.tick(60)/1000.0
 
-        # keys=pygame.key.get_pressed()
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.is_running = False
+                    
+                    if (event.type == pygame_gui.UI_BUTTON_PRESSED and
+                            event.ui_element == self.load_button):
+                        self.file_dialog = UIFileDialog(pygame.Rect(160, 50, 440, 500),
+                                                        self.ui_manager,
+                                                        window_title='Choose Image...',
+                                                        initial_file_path='data/',
+                                                        allow_picking_directories=True,
+                                                        allow_existing_files_only=True)
+                        # self.load_button.disable()
 
-        frame = cv2.imread("flower.jpg")
+                    if event.type == pygame_gui.UI_FILE_DIALOG_PATH_PICKED:
+                        if self.display_loaded_image is not None:
+                            self.display_loaded_image.kill()
 
-        if isReverse:
-            frame = processing(frame, "reverse")
-        if isLog:
-            frame = processing(frame, "logarit")
-        if isThreshold:
-            frame = processing(frame, "threshold")
-        if isGamma:
-            frame = processing(frame, "gamma")
+                        image_path = create_resource_path(event.text)
+                        self.open_cv_img = cv2.imread(image_path)
+                        original_img = pygame.image.load(image_path).convert_alpha()
+                        self.scaler_sub = Scaler(original_img, (200, 200))
+                        original_dis = self.scaler_sub.scale()[0]
+                        self.original_image_windows = pygame_gui.elements.UIWindow(rect=pygame.Rect((50, 50), (200, 200)),
+                                                        manager=self.ui_manager, resizable=True,
+                                                        window_display_title='Original Image')
+                        self.original_image_windows.set_minimum_dimensions((100, 100))
 
-        manager.update(time_delta)
-        window_surface.blit(background, (0, 0))
+                        display_original_image = UIImage(relative_rect=pygame.Rect((0,0), (200, 200)),
+                                                            image_surface=original_dis,
+                                                            container=self.original_image_windows,
+                                                            manager=self.ui_manager,
+                                                            anchors={
+            'left': 'left',
+            'right': 'left',
+            'top': 'top',
+            'bottom': 'top'
+        })
 
-        frame = np.rot90(frame)
-        frame = pygame.surfarray.make_surface(frame).convert() 
+                    if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                        if event.ui_element == self.reverse_btn:
+                            isReverse = True
+                            isLog = False
+                            isGamma = False
+                            isThreshold = False
+                        if event.ui_element == self.logarit_btn:
+                            isLog = True
+                            isReverse = False
+                            isGamma = False
+                            isThreshold = False
+                        if event.ui_element == self.gamma_btn:
+                            isGamma = True
+                            isReverse = False
+                            isLog = False
+                            isThreshold = False
+                        if event.ui_element == self.threshold_btn:
+                            isThreshold = True
+                            isGamma = False
+                            isReverse = False
+                            isLog = False
 
-        window_surface.blit(frame, (120, 10))
+                    self.ui_manager.process_events(event)
+                
+                    if isReverse:
+                        self.open_cv_img = processing(self.open_cv_img, "reverse")
+                    if isLog:
+                        self.open_cv_img = processing(self.open_cv_img, "logarit")
+                    if isThreshold:
+                        self.open_cv_img = processing(self.open_cv_img, "threshold")
+                    if isGamma:
+                        self.open_cv_img = processing(self.open_cv_img, "gamma")
 
-        manager.draw_ui(window_surface)
+                if self.open_cv_img is not None:
+                    frame = np.rot90(self.open_cv_img)
+                    frame = pygame.surfarray.make_surface(frame).convert_alpha()
 
-        pygame.display.update()
+                    image_rect = frame.get_rect()
+                    self.scaler_main = Scaler(frame, self.max_image_display_dimensions)
+                    display_image, image_rect = self.scaler_main.scale()
+                    self.display_loaded_image = UIImage(relative_rect=image_rect,
+                                                            image_surface=display_image,
+                                                            manager=self.ui_manager)
 
-
-
-if __name__ == "__main__":
-    run()
+                self.ui_manager.update(time_delta)
+                self.window_surface.blit(self.background, (0, 0))
+                self.ui_manager.draw_ui(self.window_surface)
+                pygame.display.update()
