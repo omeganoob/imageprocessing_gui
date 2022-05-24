@@ -19,7 +19,7 @@ class MainApp:
         self.scaler_sub = None
         self.open_cv_img = None
         self.image_path = None
-        self.processor = Processor()
+        self.processor = Processor(app = self)
         # elements size and bounds
         self.button_size_m = (100, 35)
         self.button_size_l = (150, 30)

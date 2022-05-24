@@ -8,10 +8,8 @@ from adaptive_filter import AdaptiveFilter
 from max_filter import MaxFilter
 from median_filter import MedianFilter
 class Processor:
-    def __init__(self):
-        self.c = 100
-        self.th = 255//2
-        self.gamma = 1
+    def __init__(self, app):
+        self.app = app
 
     def processing(self, img, command):
 
@@ -56,11 +54,11 @@ class Processor:
         if command == 'reverse':
             return reverse(img)
         if command == 'logarit':
-            return logarit(img, self.c)
+            return logarit(img, self.app.slider_c.get_current_value())
         if command == 'threshold':
-            return threshold(img, self.th)
+            return threshold(img, self.app.slider_threshold.get_current_value())
         if command == 'gamma':
-            return Gamma(img, self.gamma, self.c)
+            return Gamma(img, self.app.slider_gamma.get_current_value(), self.app.slider_c.get_current_value())
         if command == 'gaussian':
             return Gaussian_blur(img)
         if command == 'hist_equalize':
