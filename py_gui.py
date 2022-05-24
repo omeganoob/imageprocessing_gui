@@ -10,9 +10,11 @@ from pygame_gui.windows import UIFileDialog
 from pygame_gui.core.utility import create_resource_path
 from pygame_gui.elements import UIHorizontalSlider
 from pygame_gui.elements import UILabel
+from video import video_run
 
 
 class MainApp:
+    videoCapture = False
     def __init__(self):
         pygame.init()
         self.scaler_main = None
@@ -20,6 +22,7 @@ class MainApp:
         self.open_cv_img = None
         self.image_path = None
         self.processor = Processor(app = self)
+        
         # elements size and bounds
         self.button_size_m = (100, 35)
         self.button_size_l = (150, 30)
@@ -65,17 +68,25 @@ class MainApp:
         self.slider_gamma = UIHorizontalSlider(pygame.Rect((510, 590 - 25),
                                                           (240, 25)),
                                               100,
-                                              (0.0, 100.0),
+                                              (0.0, 200.0),
                                               self.ui_manager,
                                               click_increment=10)
         # self.slider_gamma.disable()
         self.label_gamma = UILabel(pygame.Rect((510, 540),
                                                 (200, 25)),
-                                    'Gamma: ' + str(float(self.slider_gamma.get_current_value()/100)),
+                                    'Gamma: ' + str(round(self.slider_gamma.get_current_value()/100, 1)),
                                     self.ui_manager)
             ##Buttons
         self.load_button = UIButton(relative_rect=pygame.Rect(( -45, 10), self.button_square),
-                                    text="Upload",
+                                    text="↑",
+                                    manager=self.ui_manager,
+                                    anchors={'left': 'right',
+                                            'right': 'right',
+                                            'top': 'top',
+                                            'bottom': 'top'})
+
+        self.video_btn = UIButton(relative_rect=pygame.Rect(( -45 - self.button_square[0] - 5, 10), self.button_square),
+                                    text="◙",
                                     manager=self.ui_manager,
                                     anchors={'left': 'right',
                                             'right': 'right',
@@ -235,6 +246,7 @@ class MainApp:
                                                             'top': 'top',
                                                             'bottom': 'top'
                                                         })
+
                     self.label_threshold.clear_text_surface()
                     self.label_threshold = UILabel(pygame.Rect((10, 540),
                                                 (200, 25)),
@@ -248,9 +260,17 @@ class MainApp:
                     self.label_gamma.clear_text_surface()
                     self.label_gamma = UILabel(pygame.Rect((510, 540),
                                                 (200, 25)),
-                                    'Gamma: ' + str(float(self.slider_gamma.get_current_value()/100)),
+                                    'Gamma: ' + str(round(self.slider_gamma.get_current_value()/100, 1)),
                                     self.ui_manager)
                     if event.type == pygame_gui.UI_BUTTON_PRESSED:
+
+                        if event.ui_element == self.video_btn:
+                            if self.display_loaded_image is not None:
+                                self.display_loaded_image.kill()
+                            if self.original_image_windows is not None:
+                                self.original_image_windows.kill()
+                            self.videoCapture = True
+
                         if event.ui_element == self.reverse_btn:
                             commands = {x : False for x in commands}
                             commands["isReverse"] = True
@@ -284,6 +304,12 @@ class MainApp:
                 if self.image_path is not None:
                     self.open_cv_img = cv2.imread(self.image_path)
                     self.open_cv_img = cv2.cvtColor(self.open_cv_img, cv2.COLOR_BGR2RGB)
+
+                if self.videoCapture:
+                    # _, self.open_cv_img = cv2.VideoCapture(0).read()
+                    # self.open_cv_img = cv2.cvtColor(self.open_cv_img, cv2.COLOR_BGR2RGB)
+                    video_run(app = self)
+
 
                 if commands["isReverse"]:
                     self.open_cv_img = self.processor.processing(self.open_cv_img, "reverse")

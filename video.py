@@ -2,11 +2,11 @@ import pygame
 import cv2.cv2 as cv2
 import numpy as np
 
-# video = cv2.VideoCapture(0)
+video = cv2.VideoCapture(0)
 pygame.init()
 
-W = 720
-H = 500
+W = 800
+H = 600
 
 window = pygame.display.set_mode((W, H))
 
@@ -27,7 +27,7 @@ def Gamma(image, gamma, c):
     
     return (float(c) * np.exp(np.log(nomalize(image)) * float(gamma))).astype(np.uint8)
 
-def run():
+def video_run(app):
     isReverse = False
     isLog = False
     isThreshold = False
@@ -46,11 +46,16 @@ def run():
             
         keys=pygame.key.get_pressed()
 
-        # ret, frame = video.read()
+        ret, frame = video.read()
         
-        frame = cv2.imread("flower.jpg")
+        # frame = cv2.imread("flower.jpg")
 
         imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if keys[pygame.K_ESCAPE]:
+            video.release
+            app.videoCapture = False
+            running = False
+            
         if keys[pygame.K_r]:
             c = 100
             isReverse = True
@@ -96,19 +101,17 @@ def run():
         if isGamma:
             imgRGB = Gamma(imgRGB, gamma, c)
             if keys[pygame.K_RIGHT]:
-                gamma = gamma + 1
+                gamma = gamma + 0.5
                 print(f"gamma: {gamma}")
             if keys[pygame.K_LEFT]:
-                gamma = gamma - 0.1 if gamma > 0 else 0
+                gamma = gamma - 0.5 if gamma > 0 else 0
                 print(f"gamma: {gamma}")
 
         imgRGB = np.rot90(imgRGB)
         imgRGB = pygame.surfarray.make_surface(imgRGB).convert() 
 
-        window.fill((84, 160, 255))
+        window.blit(app.background, (0, 0))
         window.blit(imgRGB, ((W - imgRGB.get_size()[0]) // 2, (H - imgRGB.get_size()[1]) // 2))
         pygame.display.update()
-
-
 if __name__ == "__main__":
-    run()
+    video_run()

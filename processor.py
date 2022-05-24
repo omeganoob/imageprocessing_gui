@@ -58,7 +58,7 @@ class Processor:
         if command == 'threshold':
             return threshold(img, self.app.slider_threshold.get_current_value())
         if command == 'gamma':
-            return Gamma(img, self.app.slider_gamma.get_current_value(), self.app.slider_c.get_current_value())
+            return Gamma(img, round(self.app.slider_gamma.get_current_value()/100, 1), self.app.slider_c.get_current_value())
         if command == 'gaussian':
             return Gaussian_blur(img)
         if command == 'hist_equalize':
