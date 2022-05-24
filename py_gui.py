@@ -3,6 +3,8 @@ import pygame_gui
 from processor import Processor
 import cv2.cv2 as cv2
 import numpy as np
+import string
+import random
 
 from scaler import Scaler
 from pygame_gui.elements import UIButton, UIImage
@@ -10,6 +12,7 @@ from pygame_gui.windows import UIFileDialog
 from pygame_gui.core.utility import create_resource_path
 from pygame_gui.elements import UIHorizontalSlider
 from pygame_gui.elements import UILabel
+from pygame_gui.elements import UITextBox
 from video import video_run
 
 
@@ -84,6 +87,15 @@ class MainApp:
                                             'right': 'right',
                                             'top': 'top',
                                             'bottom': 'top'})
+
+        self.save_btn = UIButton(relative_rect=pygame.Rect(( -45, 510), self.button_square),
+                                    text="↓",
+                                    manager=self.ui_manager,
+                                    anchors={'left': 'right',
+                                            'right': 'right',
+                                            'top': 'top',
+                                            'bottom': 'top'})
+        self.save_btn.disable()
 
         self.video_btn = UIButton(relative_rect=pygame.Rect(( -45 - self.button_square[0] - 5, 10), self.button_square),
                                     text="◙",
@@ -225,6 +237,7 @@ class MainApp:
                             self.display_loaded_image.kill()
 
                         self.image_path = create_resource_path(event.text)
+                        self.save_btn.enable()
                         # self.open_cv_img = cv2.imread(self.image_path)
                         # self.open_cv_img = cv2.cvtColor(self.open_cv_img, cv2.COLOR_BGR2RGB)
 
@@ -263,6 +276,20 @@ class MainApp:
                                     'Gamma: ' + str(round(self.slider_gamma.get_current_value()/100, 1)),
                                     self.ui_manager)
                     if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                        
+                        if event.ui_element == self.save_btn:
+                            frame = np.rot90(self.open_cv_img)
+                            frame = pygame.surfarray.make_surface(frame).convert_alpha()
+                            name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+                            pygame.image.save(frame,f'data/{name}.png')
+                            saveNotify = pygame_gui.elements.UIWindow(rect=pygame.Rect((250, 100), (400, 45)),
+                                                        manager=self.ui_manager, resizable=True,
+                                                        window_display_title='Save completed')
+                            UITextBox(f'Image saved at data/{name}.png',
+                                        pygame.Rect(-2, -2, 400, 45),
+                                        container = saveNotify,
+                                        manager=self.ui_manager,
+                                        object_id='#text_box_1')
 
                         if event.ui_element == self.video_btn:
                             if self.display_loaded_image is not None:
